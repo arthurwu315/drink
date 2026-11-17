@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>50嵐 (基隆廟口店) - 跨部門團購點餐系統</title>
+  <style>
+    :root { --primary: #005eb8; --accent: #ffd100; --bg: #f4f6f9; --card: #ffffff; --text: #222; }
+    body { font-family: "Microsoft JhengHei", sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+    .container { max-width: 980px; margin: auto; }
+    .header { background: linear-gradient(135deg, #005eb8, #003f7d); color: #fff; padding: 22px; border-radius: 12px; margin-bottom: 20px; border-bottom: 5px solid var(--accent); }
+    .header h1 { margin: 0 0 6px 0; font-size: 24px; }
+    .header p { margin: 0; font-size: 14px; opacity: 0.9; }
+    .card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    label { display: block; font-size: 12px; font-weight: bold; color: #555; margin-bottom: 4px; }
+    input, select, button { padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; width: 100%; box-sizing: border-box; }
+    button { background: var(--primary); color: #fff; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    button:hover { opacity: 0.9; }
+    button.secondary { background: #6c757d; }
+    button.copy-btn { background: #198754; width: auto; padding: 6px 10px; font-size: 12px; }
+    button.del-btn { background: #dc3545; width: auto; padding: 6px 10px; font-size: 12px; margin-left: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+    th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; }
+    th { background: #f1f3f5; }
+    .tabs { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+    .tab-btn { background: #e9ecef; color: #333; width: auto; padding: 10px 18px; }
+    .tab-btn.active { background: var(--primary); color: #fff; }
+    .badge { background: #e7f1ff; color: var(--primary); padding: 4px 10px; border-radius: 12px; font-weight: bold; }
+    .notice { font-size: 12px; color: #666; margin-top: 8px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🥤 50嵐 (基隆廟口店) 團購點餐系統</h1>
+    <p>📍 基隆市仁愛區愛四路1號 ｜ 平台外送價（每筆訂單店家另收包裝費 $2）</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">➕ 我要點飲料</h3>
+    <div class="grid">
+      <div>
+        <label>部門 / 姓名 *</label>
+        <input type="text" id="deptName" placeholder="例: 業務部 小王" required />
+      </div>
+      <div>
+        <label>飲料系列 *</label>
+        <select id="categorySelect" onchange="updateDrinkList()"></select>
+      </div>
+      <div>
+        <label>選擇飲品 *</label>
+        <select id="drinkSelect" onchange="updatePrice()"></select>
+      </div>
+      <div>
+        <label>容量</label>
+        <select id="sizeSelect" onchange="updatePrice()">
+          <option value="中杯">中杯 (原價)</option>
+          <option value="大杯">大杯 (+10元)</option>
+        </select>
+      </div>
+      <div>
+        <label>甜度</label>
+        <select id="sugarSelect">
+          <option value="微糖">微糖 (3分)</option>
+          <option value="半糖">半糖 (5分)</option>
+          <option value="少糖">少糖 (7分)</option>
+          <option value="正常甜">正常甜</option>
+          <option value="一分糖">一分糖</option>
+          <option value="無糖">無糖</option>
+        </select>
+      </div>
+      <div>
+        <label>冰塊</label>
+        <select id="iceSelect">
+          <option value="微冰">微冰</option>
+          <option value="少冰">少冰</option>
+          <option value="正常冰">正常冰</option>
+          <option value="去冰">去冰</option>
+          <option value="完全去冰">完全去冰</option>
+          <option value="常溫">常溫</option>
+          <option value="熱飲">熱飲</option>
+        </select>
+      </div>
+      <div>
+        <label>單價 (元)</label>
+        <input type="number" id="price" min="0" />
+      </div>
+      <div>
+        <label>杯數</label>
+        <input type="number" id="qty" value="1" min="1" />
+      </div>
+    </div>
+    <div style="margin-top: 12px;">
+      <label>其他加料或備註（選填，如：加波霸/珍珠/椰果 +10元，請自行調整上方單價）</label>
+      <input type="text" id="extraNote" placeholder="例: 加波霸 (+10元請手動修改上方單價)" />
+    </div>
+    <div style="margin-top: 14px; display: flex; gap: 10px;">
+      <button onclick="submitOrder()" id="submitBtn">✅ 送出飲料訂單</button>
+      <button class="secondary" onclick="loadOrders()" style="width: 150px;">🔄 重新整理清單</button>
+    </div>
+    <div class="notice">※ 找冰淇淋系列僅限冷飲；部分大杯價差若超過 10 元可於單價欄位手動微調。刪除訂單需輸入訂購人名稱或主揪密碼。</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('detail', this)">📋 所有人點餐明細 (可跟單/刪除)</button>
+    <button class="tab-btn" onclick="switchTab('summary', this)">🛒 主揪下單合併清單</button>
+    <button class="tab-btn" onclick="switchTab('split', this)">💰 跨部門分帳計算</button>
+  </div>
+
+  <div id="tab-detail" class="card">
+    <h3 style="margin-top:0;">📋 目前大家點的飲料</h3>
+    <table>
+      <thead>
+        <tr><th>部門 / 姓名</th><th>飲品名稱</th><th>規格備註</th><th>單價</th><th>杯數</th><th>小計</th><th>操作</th></tr>
+      </thead>
+      <tbody id="detailBody"></tbody>
+    </table>
+  </div>
+
+  <div id="tab-summary" class="card" style="display:none;">
+    <h3 style="margin-top:0;">🛒 主揪下單統計（相同飲料＋規格已自動合併）</h3>
+    <table>
+      <thead>
+        <tr><th>飲品名稱</th><th>規格備註</th><th>總杯數</th><th>單價</th><th>小計</th></tr>
+      </thead>
+      <tbody id="summaryBody"></tbody>
+    </table>
+  </div>
+
+  <div id="tab-split" class="card" style="display:none;">
+    <h3 style="margin-top:0;">💰 運費與折扣分攤計算</h3>
+    <div class="grid" style="margin-bottom: 12px;">
+      <div>
+        <label>外送費＋包裝費總額 (人數平分，預設包裝費2元)</label>
+        <input type="number" id="deliveryFee" value="2" min="0" oninput="renderAll()" />
+      </div>
+      <div>
+        <label>優惠券折抵 (按飲料金額比例折抵)</label>
+        <input type="number" id="discount" value="0" min="0" oninput="renderAll()" />
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr><th>部門 / 姓名</th><th>飲料原價</th><th>分攤運費/包裝</th><th>分攤折扣</th><th>應付總金額</th></tr>
+      </thead>
+      <tbody id="splitBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const POST_URL = "https://default9f27a705ed52469595ee8681e5196c.18.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/03/workflows/200e9c1c16974d19b1ec00fa261356d4/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=NjVDUtCbCdw4IWw_E49XxhPw7dinqCrlTsE6r0wykrc";
+  const GET_URL  = "https://default9f27a705ed52469595ee8681e5196c.18.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/06/workflows/7076c942691449e6842348e6b81e5f41/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=laCkbaJQO5BdEao0iT9eYIPcuVmyquXozCK2eMdQFc4";
+  const DEL_URL  = "https://default9f27a705ed52469595ee8681e5196c.18.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/18/workflows/4c5a15582d4a4e3b8dc4399111c49d57/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Ck4_jPbos62fuD2sMfruTMZThs6KZgmcTZwheqtmtDw";
+
+  // 主揪管理員萬用密碼 (可自行修改)
+  const ADMIN_PIN = "8888";
+
+  const MENU_DATA = {
+    "找好茶": [
+      { name: "阿薩姆紅茶", price: 40 },
+      { name: "茉莉綠茶", price: 40 },
+      { name: "四季春青茶", price: 40 },
+      { name: "黃金烏龍", price: 40 },
+      { name: "檸檬綠", price: 55 },
+      { name: "梅綠", price: 55 },
+      { name: "8冰綠", price: 55 },
+      { name: "桔子綠", price: 55 },
+      { name: "養樂多綠", price: 55 },
+      { name: "旺來紅", price: 55 },
+      { name: "旺來綠", price: 55 },
+      { name: "旺來青", price: 55 },
+      { name: "柚子紅", price: 55 },
+      { name: "柚子綠", price: 55 },
+      { name: "柚子青", price: 55 },
+      { name: "柚子烏龍", price: 55 },
+      { name: "檸檬紅", price: 55 },
+      { name: "麵茶紅", price: 55 },
+      { name: "麵茶綠", price: 55 },
+      { name: "麵茶青", price: 55 },
+      { name: "麵茶烏", price: 55 }
+    ],
+    "找奶茶": [
+      { name: "奶茶", price: 55 },
+      { name: "奶綠", price: 55 },
+      { name: "四季奶青", price: 55 },
+      { name: "黃金烏龍奶", price: 55 },
+      { name: "紅茶瑪奇朵", price: 55 },
+      { name: "綠茶瑪奇朵", price: 55 },
+      { name: "四季瑪奇朵", price: 55 },
+      { name: "烏龍瑪奇朵", price: 55 },
+      { name: "阿華田", price: 55 },
+      { name: "麵茶奶茶", price: 65 },
+      { name: "麵茶奶綠", price: 65 },
+      { name: "麵茶四季奶青", price: 65 },
+      { name: "麵茶黃金烏龍奶", price: 65 }
+    ],
+    "找口感": [
+      { name: "四季春珍波椰", price: 45 },
+      { name: "波霸奶茶", price: 55 },
+      { name: "珍珠奶茶", price: 55 },
+      { name: "布丁紅", price: 55 },
+      { name: "布丁綠", price: 55 },
+      { name: "布丁青", price: 55 },
+      { name: "布丁黃金烏龍", price: 55 },
+      { name: "布丁奶茶", price: 65 },
+      { name: "布丁奶綠", price: 65 },
+      { name: "布丁奶青", price: 65 },
+      { name: "布丁烏龍奶茶", price: 65 }
+    ],
+    "找拿鐵": [
+      { name: "紅茶拿鐵", price: 65 },
+      { name: "綠茶拿鐵", price: 65 },
+      { name: "黃金烏龍拿鐵", price: 65 },
+      { name: "重焙烏龍拿鐵", price: 65 },
+      { name: "阿華田拿鐵", price: 65 },
+      { name: "麵茶紅茶拿鐵", price: 70 },
+      { name: "麵茶綠茶拿鐵", price: 70 },
+      { name: "麵茶四季拿鐵", price: 70 },
+      { name: "麵茶黃金烏龍拿鐵", price: 70 },
+      { name: "麵茶重焙烏龍拿鐵", price: 70 },
+      { name: "波霸鮮奶", price: 75 },
+      { name: "珍珠鮮奶", price: 75 }
+    ],
+    "找新鮮": [
+      { name: "8冰茶", price: 55 },
+      { name: "柚子茶", price: 55 },
+      { name: "檸檬汁", price: 60 },
+      { name: "金桔檸檬", price: 60 },
+      { name: "檸檬梅汁", price: 65 },
+      { name: "檸檬養樂多", price: 70 }
+    ],
+    "找冰淇淋": [
+      { name: "冰淇淋紅茶 (僅限冷飲)", price: 55 },
+      { name: "冰淇淋綠茶 (僅限冷飲)", price: 55 },
+      { name: "冰淇淋青茶 (僅限冷飲)", price: 55 },
+      { name: "冰淇淋烏龍茶 (僅限冷飲)", price: 55 },
+      { name: "芒果紅 (僅限冷飲)", price: 55 },
+      { name: "芒果綠 (僅限冷飲)", price: 55 },
+      { name: "芒果青 (僅限冷飲)", price: 55 },
+      { name: "芒果烏龍 (僅限冷飲)", price: 55 },
+      { name: "荔枝紅 (僅限冷飲)", price: 55 },
+      { name: "荔枝綠 (僅限冷飲)", price: 55 },
+      { name: "荔枝青 (僅限冷飲)", price: 55 },
+      { name: "荔枝烏龍 (僅限冷飲)", price: 55 }
+    ]
+  };
+
+  let orders = [];
+
+  function initMenu() {
+    const catSelect = document.getElementById("categorySelect");
+    Object.keys(MENU_DATA).forEach(cat => {
+      const opt = document.createElement("option");
+      opt.value = cat;
+      opt.innerText = cat;
+      catSelect.appendChild(opt);
+    });
+    updateDrinkList();
+  }
+
+  function updateDrinkList() {
+    const cat = document.getElementById("categorySelect").value;
+    const drinkSelect = document.getElementById("drinkSelect");
+    drinkSelect.innerHTML = "";
+    MENU_DATA[cat].forEach((d, idx) => {
+      const opt = document.createElement("option");
+      opt.value = idx;
+      opt.innerText = `${d.name} ($${d.price}起)`;
+      drinkSelect.appendChild(opt);
+    });
+    updatePrice();
+  }
+
+  function updatePrice() {
+    const cat = document.getElementById("categorySelect").value;
+    const idx = document.getElementById("drinkSelect").value;
+    const size = document.getElementById("sizeSelect").value;
+    const basePrice = MENU_DATA[cat][idx].price;
+    document.getElementById("price").value = size === "大杯" ? basePrice + 10 : basePrice;
+  }
+
+  async function loadOrders() {
+    try {
+      const res = await fetch(GET_URL);
+      const data = await res.json();
+      orders = data
+        .filter(row => (row.DeptName || row.Item) && row.Status !== "已刪除")
+        .map(row => ({
+          id: String(row.ID || ""),
+          deptName: row.DeptName || "",
+          item: row.Item || "",
+          note: row.Note || "",
+          price: Number(row.Price) || 0,
+          qty: Number(row.Qty) || 1
+        }));
+      renderAll();
+    } catch (e) {
+      alert("讀取資料失敗，請確認 Power Automate 讀取流程是否已開啟。");
+    }
+  }
+
+  async function submitOrder(customData = null) {
+    let payload = customData;
+    if (!payload) {
+      const cat = document.getElementById("categorySelect").value;
+      const idx = document.getElementById("drinkSelect").value;
+      const drinkName = MENU_DATA[cat][idx].name;
+      const size = document.getElementById("sizeSelect").value;
+      const sugar = document.getElementById("sugarSelect").value;
+      const ice = document.getElementById("iceSelect").value;
+      const extra = document.getElementById("extraNote").value.trim();
+      const fullNote = `${size} / ${sugar} / ${ice}${extra ? " / " + extra : ""}`;
+
+      payload = {
+        ID: Date.now().toString(),
+        DeptName: document.getElementById("deptName").value.trim(),
+        Item: drinkName,
+        Note: fullNote,
+        Price: Number(document.getElementById("price").value),
+        Qty: Number(document.getElementById("qty").value)
+      };
+    }
+
+    if (!payload.DeptName || !payload.Item || isNaN(payload.Price) || payload.Qty < 1) {
+      alert("請完整填寫「部門 / 姓名」與杯數！");
+      return;
+    }
+
+    const btn = document.getElementById("submitBtn");
+    btn.disabled = true;
+    btn.innerText = "傳送中...";
+
+    try {
+      const res = await fetch(POST_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("HTTP Error");
+      if (!customData) {
+        document.getElementById("extraNote").value = "";
+        document.getElementById("qty").value = 1;
+      }
+      setTimeout(loadOrders, 3500);
+    } catch (e) {
+      alert("送出失敗，請檢查 Power Automate 寫入網址與流程狀態。");
+    } finally {
+      btn.disabled = false;
+      btn.innerText = "✅ 送出飲料訂單";
+    }
+  }
+
+  function followOrder(item, note, price) {
+    const myName = document.getElementById("deptName").value.trim() || prompt("請輸入你的「部門 / 姓名」以跟單：");
+    if (!myName) return;
+    document.getElementById("deptName").value = myName;
+    submitOrder({
+      ID: Date.now().toString(),
+      DeptName: myName,
+      Item: item,
+      Note: note,
+      Price: price,
+      Qty: 1
+    });
+  }
+
+  async function deleteOrder(id, ownerName, itemName) {
+    if (!id) {
+      alert("此筆資料缺少 ID，無法從網頁刪除，請直接從 Excel 移除。");
+      return;
+    }
+    const input = prompt(`確定要刪除「${ownerName}」的【${itemName}】嗎？
+
+為防止誤刪他人飲料，請輸入訂購人名稱「${ownerName}」或主揪密碼：`);
+    if (input === null) return;
+    if (input.trim() !== ownerName.trim() && input.trim() !== ADMIN_PIN) {
+      alert("名稱或密碼不符，已取消刪除！");
+      return;
+    }
+
+    try {
+      const res = await fetch(DEL_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ID: String(id) })
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      alert("已送出刪除要求，清單將於 3 秒後自動更新！");
+      setTimeout(loadOrders, 3000);
+    } catch (e) {
+      alert("刪除失敗，請確認刪除流程是否已開啟且 Excel 已有 Status 欄位。");
+    }
+  }
+
+  function renderAll() {
+    const detailBody = document.getElementById("detailBody");
+    detailBody.innerHTML = orders.map(o => `
+      <tr>
+        <td><b>${o.deptName}</b></td>
+        <td>${o.item}</td>
+        <td>${o.note || "-"}</td>
+        <td>$${o.price}</td>
+        <td>${o.qty}</td>
+        <td>$${o.price * o.qty}</td>
+        <td>
+          <button class="copy-btn" onclick="followOrder('${o.item}', '${o.note}', ${o.price})">+1 跟單</button>
+          <button class="del-btn" onclick="deleteOrder('${o.id}', '${o.deptName}', '${o.item}')">🗑️ 刪除</button>
+        </td>
+      </tr>
+    `).join("");
+
+    const summaryMap = {};
+    orders.forEach(o => {
+      const key = `${o.item}__${o.note}__${o.price}`;
+      if (!summaryMap[key]) summaryMap[key] = { item: o.item, note: o.note, price: o.price, qty: 0 };
+      summaryMap[key].qty += o.qty;
+    });
+    document.getElementById("summaryBody").innerHTML = Object.values(summaryMap).map(s => `
+      <tr>
+        <td><b>${s.item}</b></td>
+        <td>${s.note || "-"}</td>
+        <td><span class="badge">${s.qty} 杯</span></td>
+        <td>$${s.price}</td>
+        <td>$${s.price * s.qty}</td>
+      </tr>
+    `).join("");
+
+    const personMap = {};
+    let totalFood = 0;
+    orders.forEach(o => {
+      const sub = o.price * o.qty;
+      totalFood += sub;
+      personMap[o.deptName] = (personMap[o.deptName] || 0) + sub;
+    });
+
+    const people = Object.keys(personMap);
+    const fee = Number(document.getElementById("deliveryFee").value) || 0;
+    const disc = Number(document.getElementById("discount").value) || 0;
+    const feePerPerson = people.length ? fee / people.length : 0;
+
+    document.getElementById("splitBody").innerHTML = people.map(p => {
+      const raw = personMap[p];
+      const myDisc = totalFood > 0 ? (raw / totalFood) * disc : 0;
+      const finalPay = Math.round(raw + feePerPerson - myDisc);
+      return `
+        <tr>
+          <td><b>${p}</b></td>
+          <td>$${raw}</td>
+          <td>+$${Math.round(feePerPerson)}</td>
+          <td>-$${Math.round(myDisc)}</td>
+          <td><span class="badge">$${finalPay}</span></td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  function switchTab(tab, btn) {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    ["detail", "summary", "split"].forEach(t => {
+      document.getElementById("tab-" + t).style.display = (t === tab) ? "block" : "none";
+    });
+  }
+
+  initMenu();
+  loadOrders();
+</script>
+</body>
+</html>
